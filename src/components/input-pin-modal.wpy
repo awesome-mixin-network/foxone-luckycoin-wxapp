@@ -1,0 +1,79 @@
+<template>
+  <fx-pin-modal :show.sync="show">
+    <view slot="title">验证 PIN</view>
+    <view slot="content">
+      <view class="form">
+        <view class="form-row">
+          <fx-pin-input wx:if="{{pinType === 1}}" :usePassword.sync="usePassword" inputType="number" prefix="" suffix="" placeholder="6 位数字 PIN" :value.sync="pinValue"></fx-pin-input>
+          <fx-pin-adv-input wx:else :usePassword.sync="usePassword" inputType="text" prefix="" suffix="" placeholder="高级 PIN 码" :value.sync="pinAdvValue"></fx-pin-adv-input>
+        </view>
+        <view class="form-row">
+          <fx-pin-button label="验证" @tap.user="tapPinButton" buttonType="primary" :fxDisabled.sync="disabled"></fx-pin-button>
+        </view>
+      </view>
+    </view>
+  </fx-pin-modal>
+</template>
+<script>
+  import wepy from 'wepy'
+  import FxModal from '@/components/fx-modal'
+  import FxInput from '@/components/fx-input'
+  import FxButton from '@/components/fx-button'
+
+  export default class InputPinModal extends wepy.component {
+    components = {
+      'fx-pin-input': FxInput,
+      'fx-pin-adv-input': FxInput,
+      'fx-pin-modal': FxModal,
+      'fx-pin-button': FxButton
+    }
+    props = {
+      show: {
+        type: Boolean,
+        default: false,
+        twoWay: true
+      },
+      pinType: {
+        type: Number,
+        default: 1
+      }
+    }
+    data = {
+      pinValue: '',
+      pinAdvValue: '',
+      usePassword: true
+    }
+    computed = {
+      disabled () {
+        if (this.pinType === 1) {
+          if (this.pinValue.trim() === '') {
+            return true
+          }
+          if (!/^\d{6}$/.test(this.pinValue)) {
+            return true
+          }
+        } else {
+          if (this.pinAdvValue.trim() === '') {
+            return true
+          }
+        }
+        return false
+      }
+    }
+    watch = {
+      show (newVal, oldVal) {
+        if (!newVal) {
+          this.pinValue = ''
+        }
+      }
+    }
+    methods = {
+      tapPinButton (e) {
+        this.$emit('done', this.pinValue)
+      }
+    }
+  }
+</script>
+
+<style type="less" scoped>
+</style>

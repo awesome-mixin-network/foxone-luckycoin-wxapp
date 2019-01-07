@@ -1,0 +1,163 @@
+<template>
+  <view class="container">
+    <view class="content">
+      <view class="list-items">
+        <view class="list-item" wx:key="list-item-{{index}}" wx:for="{{items}}" wx:for-index="index" wx:for-item="item">
+          <image class="list-item-icon" src="{{item.icon}}"></image>
+          <view class="list-item-identify">
+            <view class="list-item-time">{{item.createdTime}}</view>
+            <view class="list-item-message">{{item.message}}</view>
+          </view>
+          <view class="list-item-amount">{{item.amount}} {{item.assetSymbol}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import moment from 'moment'
+
+  export default class MyRecordsPage extends wepy.page {
+    config = {
+      navigationBarTitleText: '收发记录',
+      navigationBarTitleColor: '#FF6B49',
+      backgroundColor: '#FF6B49'
+    }
+    components = {
+    }
+
+    mixins = []
+
+    data = {
+      items: []
+    }
+
+    computed = {
+    }
+
+    methods = {
+
+    }
+
+    events = {
+    }
+
+    onLoad(opts) {
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: '#FF6B49'
+      })
+      try {
+        wx.setBackgroundColor({
+          backgroundColor: '#FF6B49',
+          backgroundColorTop: '#FF6B49',
+          backgroundColorBottom: '#F29976'
+        })
+      } catch (e) {}
+      wx.showLoading()
+      if (opts.records) {
+        this.$parent.globalData.client.getMyRecords()
+          .then((res) => {
+            wx.hideLoading()
+            try {
+              this.items = res.data.receivedPackets.map((x) => {
+                x.createdTime = moment(x.record.createdAt * 1000).fromNow()
+                x.amount = x.record.amount
+                if (x.redPacket.owner) {
+                  if (x.redPacket.owner.avatar.indexOf('http') !== 0) {
+                    x.icon = this.$parent.globalData.HOST_BASE + x.redPacket.owner.avatar
+                  } else {
+                    x.icon = x.redPacket.owner.avatar
+                  }
+                } else {
+                  x.icon = '../assets/default-avatar@2x.png'
+                }
+                x.assetSymbol = x.redPacket.assetSymbol
+                x.message = `来自 ${x.redPacket.owner ? x.redPacket.owner.fullname : '不明人士'} 的硬币`
+                return x
+              })
+            } catch (e) {
+              console.log(e)
+            }
+            this.$apply()
+          }).catch(() => {
+            wx.hideLoading()
+          })
+      } else {
+        this.$parent.globalData.client.getMyPackets()
+          .then((res) => {
+            wx.hideLoading()
+            this.items = res.data.redPackets.map((x) => {
+              x.createdTime = moment(x.createdAt * 1000).fromNow()
+              x.icon = x.assetLogo
+              return x
+            })
+            this.$apply()
+          }).catch(() => {
+            wx.hideLoading()
+          })
+      }
+    }
+  }
+</script>
+<style lang="less" scoped>
+  page {
+    background: #FFF;
+  }
+  .container {
+    background: #FFF;
+  }
+  .content {
+    padding: 0px 0 100px 0;
+    width:100%;
+  }
+  .form {
+    padding: 20px 16px;
+  }
+  .list-items {
+    padding: 0 16px;
+  }
+  .list-item:first-child {
+    border-top: none;
+  }
+  .list-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 0 ;
+    border-top: 1px dashed #aaa;
+    .list-item-icon {
+      width: 32px;
+      height: 32px;
+      flex-basis: 32px;
+      border-radius: 50%;
+    }
+    .list-item-identify {
+      display: flex;
+      flex-direction: column;
+    }
+    .list-item-message {
+      flex: 0;
+      margin-left:10px;
+      font-size:14px;
+      color:#888;
+      text-overflow:ellipsis;
+      height:20px;
+      max-width:200px;
+      overflow:hidden;
+    }
+    .list-item-time {
+      flex: 0;
+      margin-left: 10px;
+      font-size: 14px;
+    }
+    .list-item-amount {
+      flex: 1;
+      margin-left: 10px;
+      font-size: 16px;
+      text-align: right;
+    }
+  }
+</style>

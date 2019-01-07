@@ -1,0 +1,239 @@
+<template>
+  <view class="container">
+    <view class="content">
+      <form bindsubmit="createAndPublish" report-submit>
+        <view class="form">
+          <view class="form-row">
+            <fx-token-picker useCustomContent="{{true}}" prefix="硬币" :items.sync="assets" :value.sync="pickedTokenIndex" itemKey="display" @change.user="bindTokenPickerChange">
+            </fx-token-picker>
+          </view>
+          <view class="form-row">
+            <fx-total-input inputType="digit" prefix="总金额" :suffix.sync="unit" placeholder="0.00" :value.sync="amountValue"></fx-total-input>
+          </view>
+          <view class="form-row">
+            <fx-amount-input inputType="number" prefix="数量" suffix="个" placeholder="填写个数" :value.sync="countValue"></fx-amount-input>
+          </view>
+          <view class="form-row">
+            <fx-message-input inputType="text" :placeholder="defaultMessage" :value.sync="messageValue"/>
+          </view>
+          <view class="form-row">
+            <balance-view :amount.sync="amountValue" :unit.sync="unit" :priceUsd.sync="priceUsd"></balance-view>
+          </view>
+          <view class="form-row">
+            <fx-button label="准备好了" fxFormType="submit" :fxDisabled.sync="disabled"></fx-button>
+          </view>
+        </view>
+      </form>
+    </view>
+    <input-pin-modal :show.sync="showInputPinModal" :pinType.sync="pinType" @done.user="inputPinModalDone"></input-pin-modal>
+    <setup-pin-modal :show.sync="showSetupPinModal" @done.user="setupPinModalDone"></setup-pin-modal>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import FxButton from '@/components/fx-button'
+  import FxInput from '@/components/fx-input'
+  import FxTextarea from '@/components/fx-textarea'
+  import FxPicker from '@/components/fx-picker'
+  import BalanceView from '@/components/balance-view'
+  import InputPinModal from '@/components/input-pin-modal'
+  import SetupPinModal from '@/components/setup-pin-modal'
+
+  export default class CreatePage extends wepy.page {
+    config = {
+      navigationBarTitleText: '准备幸运硬币',
+      navigationBarTitleColor: '#F1F1F1',
+      backgroundColor: '#F1F1F1'
+    }
+    components = {
+      'fx-button': FxButton,
+      'fx-total-input': FxInput,
+      'fx-amount-input': FxInput,
+      'fx-message-textarea': FxTextarea,
+      'fx-message-input': FxInput,
+      'fx-token-picker': FxPicker,
+      'balance-view': BalanceView,
+      'input-pin-modal': InputPinModal,
+      'setup-pin-modal': SetupPinModal
+    }
+
+    mixins = []
+
+    data = {
+      userInfo: null,
+      isOpen: true,
+      assets: [],
+      unit: '...',
+      priceUsd: 0,
+      pickedTokenIndex: 0,
+      messageValue: '',
+      packetType: 2,
+      amountValue: '',
+      countValue: '',
+      pinType: 1,
+      pin: '',
+      showSetupPinModal: false,
+      showInputPinModal: false,
+      formId: ''
+    }
+
+    computed = {
+      defaultMessage () {
+        return 'Long bitcoin, short the world.'
+      },
+      disabled () {
+        if (this.amountValue.trim() === '' || this.countValue.trim() === '') {
+          return true
+        }
+        return false
+      }
+    }
+
+    methods = {
+      createAndPublish (e) {
+        this.formId = e.detail.formId
+        let fxUserInfo = this.$parent.globalData.fxUserInfo
+        console.log(fxUserInfo)
+        if (this.assets.length === 0) {
+          wx.showToast({icon: 'none', title: '你一个硬币也没有。'})
+          return
+        }
+        if (fxUserInfo) {
+          if (fxUserInfo.isPinSet) {
+            this.pinType = fxUserInfo.pinType
+            this.showInputPinModal = true
+          } else {
+            // set pin
+            this.showSetupPinModal = true
+          }
+          this.$apply()
+        } else {
+          console.log('err: null user info')
+        }
+      },
+      bindTokenPickerChange (e) {
+        let picked = this.assets[e.detail.value]
+        this.unit = picked.symbol
+        this.priceUsd = picked.price_usd
+      },
+      inputPinModalDone (pin, e) {
+        this.pin = pin
+        this.showInputPinModal = false
+        this.$apply()
+        this.prepareCoin()
+      },
+      setupPinModalDone (pin, e) {
+        this.pin = pin
+        this.showSetupPinModal = false
+        this.$apply()
+        this.prepareCoin()
+      }
+    }
+
+    watch = {
+    }
+
+    events = {
+    }
+
+    prepareCoin () {
+      // console.log(this.messageValue || this.defaultMessage)
+      let errHandler = (err) => {
+        console.log(err)
+        wx.hideLoading()
+        wx.showToast({icon: 'none', title: '错误:' + err.code})
+      }
+      let done = (res) => {
+        let args = []
+        args.push(`packetId=${encodeURIComponent(res.data.redPacket.id)}`)
+        args.push(`uuid=${encodeURIComponent(res.data.redPacket.uuid)}`)
+        args.push(`assetId=${encodeURIComponent(res.data.redPacket.assetId)}`)
+        args.push(`symbol=${encodeURIComponent(res.data.redPacket.assetSymbol)}`)
+        args.push(`amount=${encodeURIComponent(this.amountValue)}`)
+        args.push(`count=${encodeURIComponent(this.countValue)}`)
+        args.push(`message=${encodeURIComponent(this.messageValue || this.defaultMessage)}`)
+        wx.navigateTo({
+          url: `open-preview?${args.join('&')}`
+        })
+      }
+      wx.showLoading()
+      let client = this.$parent.globalData.client
+
+      // create
+      client.createPacket({
+        assetId: this.assets[this.pickedTokenIndex].assetId,
+        assetSymbol: this.assets[this.pickedTokenIndex].symbol,
+        assetLogo: this.assets[this.pickedTokenIndex].icon,
+        amount: this.amountValue,
+        count: parseInt(this.countValue),
+        packetType: this.packetType,
+        message: this.messageValue || this.defaultMessage,
+        pin: this.pin
+      }).then((res) => {
+        // publish
+        client.publishPacket({
+          packetId: res.data.redPacket.id,
+          uuid: res.data.redPacket.uuid,
+          pin: this.pin,
+          formId: this.formId
+        }).then((res2) => {
+          wx.hideLoading()
+          // prepared
+          done(res2)
+        }).catch((err2) => {
+          errHandler(err2)
+        })
+      }).catch((err) => {
+        errHandler(err)
+      })
+    }
+
+    onLoad(opts) {
+      wx.setNavigationBarColor({
+        frontColor: '#000000',
+        backgroundColor: '#F1F1F1'
+      })
+      if (opts.assetId) {
+        this.defaultAssetId = opts.assetId
+      }
+      wx.showLoading()
+      this.$parent.globalData.client.getAssets().then((res) => {
+        for (let i = 0; i < res.data.assets.length; i += 1) {
+          let item = res.data.assets[i]
+          item.display = `${item.name} (${item.symbol}) - ${item.balance}`
+          this.assets.push(item)
+          if (opts.assetId && opts.assetId === item.assetId) {
+            this.pickedTokenIndex = i
+          }
+        }
+        if (this.assets.length > 0) {
+          this.unit = this.assets[this.pickedTokenIndex].symbol
+        }
+        this.$apply()
+        wx.hideLoading()
+      }).catch(() => {
+        wx.hideLoading()
+      })
+    }
+  }
+</script>
+<style lang="less">
+  page {
+    background: #F1F1F1;
+  }
+  .container {
+    background: #F1F1F1;
+  }
+  .content {
+    padding: 10px 0 10px 0;
+    width:100%;
+  }
+  .content {
+    .name {
+      text-align: center;
+      font-size: 14px;
+    }
+  }
+
+</style>

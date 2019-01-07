@@ -1,0 +1,97 @@
+<template>
+  <button wx:if="{{openType !== ''}}" disabled="{{fxDisabled}}" formType="{{fxFormType}}" open-type="{{openType}}" class="fx-button button" :class="{'primary': buttonType === 'primary'}" @tap="tap" bindgetuserinfo="bindGetUserInfo">
+    <view class="button-label">
+      <text>{{label}}</text>
+    </view>
+  </button>
+  <button wx:else class="fx-button button" disabled="{{fxDisabled}}" formType="{{fxFormType}}" :class="{'primary': buttonType === 'primary'}" @tap="tap">
+    <view class="button-label">
+      <text>{{label}}</text>
+    </view>
+  </button>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class FxButton extends wepy.component {
+    props = {
+      label: {
+        type: String,
+        default: 'Button'
+      },
+      openType: {
+        type: String,
+        default: ''
+      },
+      buttonType: {
+        type: String,
+        default: ''
+      },
+      fxDisabled: {
+        type: Boolean,
+        default: false
+      },
+      fxFormType: {
+        type: String,
+        default: ''
+      }
+    }
+    data = {
+    }
+    methods = {
+      bindGetUserInfo (e) {
+        this.$emit('tap', e)
+      },
+      tap (e) {
+        if (this.openType === '') {
+          this.$emit('tap', e)
+        }
+      }
+    }
+  }
+</script>
+
+<style type="less" lang="less">
+.button {
+  display: flex;
+  border-radius: 4px;
+  height: 44px;
+  justify-content: center;
+  align-items: center;
+}
+.button {
+  background: transparent;
+  border: 1px solid #E05E3D;
+  border-radius: 100px;
+  box-shadow: none;
+  .button-label {
+    color: #E05E3D;
+    font-weight: normal
+  }
+}
+.button[disabled] {
+  border: 1px solid rgb(146, 112, 104);
+  .button-label {
+    color: rgb(146, 112, 104);;
+  }
+}
+.button.primary {
+  background: #FFD244;
+  box-shadow: 0 0 1px #FFD244;
+  border: none;
+  .button-label {
+    color: #E05E3D;
+    font-weight: bold;
+  }
+}
+.button.primary[disabled] {
+  background: #FFD244;
+  box-shadow: 0 0 1px #FFD244;
+  border: none;
+  opacity: 0.5;
+  .button-label {
+    color: #E05E3D;
+    font-weight: bold;
+  }
+}
+</style>

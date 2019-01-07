@@ -1,0 +1,265 @@
+<template>
+  <view class="container">
+    <view class="content">
+      <view wx:if="{{userInfo}}" class="user-info">
+        <view class="name">{{userInfo.nickName}}</view>
+      </view>
+      <view class="form">
+        <button class="row-action" open-type="getUserInfo" bindgetuserinfo="tapMyRecords">
+          <image class="row-action-image" mode="aspectFit" src="../assets/index-records.png"></image>
+          <view class="row-action-content">
+            <view class="row-action-title">收到的硬币</view>
+            <view class="row-action-text">来自朋友的馈赠</view>
+          </view>
+        </button>
+        <button class="row-action" open-type="getUserInfo" bindgetuserinfo="tapMyPackets">
+          <image class="row-action-image" mode="aspectFit" src="../assets/index-gift.png"></image>
+          <view class="row-action-content">
+            <view class="row-action-title">送出的硬币</view>
+            <view class="row-action-text">给朋友的祝福</view>
+          </view>
+        </button>
+      </view>
+      <view class="form">
+        <view class="form-row">
+          <fx-create-button openType="getUserInfo" buttonType="primary" label="我要发幸运硬币" @tap.user="tapCreateButton"></fx-create-button>
+        </view>
+        <view class="form-row">
+          <fx-balance-button openType="getUserInfo" label="我的余额账户" @tap.user="tapBalanceButton"></fx-balance-button>
+        </view>
+      </view>
+    </view>
+    <view class="back" :class="{ 'open': isOpen }" style="height: 40px">
+      <view class="back-inner">
+        <view class="back-border"></view>
+        <view class="back-copyright"></view>
+        <image class="back-img" mode="aspectFill" src="../assets/cover-back-img@2x.jpg"></image>
+      </view>
+    </view>
+    <login-modal :show.sync="showModal" @done.user="loginModalDone"></login-modal>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import FXButton from '@/components/fx-button'
+  import LoginModal from '@/components/login-modal'
+
+  export default class Index extends wepy.page {
+    config = {
+      navigationBarTitleText: '幸运硬币',
+      navigationBarTitleColor: '#FF6B49',
+      backgroundColor: '#FF6B49'
+    }
+    components = {
+      'login-modal': LoginModal,
+      'fx-create-button': FXButton,
+      'fx-balance-button': FXButton,
+      'fx-test-create-addr-button': FXButton,
+      'fx-test-get-assets-button': FXButton,
+      'fx-test-login-button': FXButton
+    }
+
+    mixins = []
+
+    data = {
+      isOpen: true,
+      showModal: false
+    }
+
+    computed = {
+      notLogin () {
+        return this.$parent.globalData.userInfo === null
+      }
+    }
+
+    errHandler(err) {
+      wx.hideLoading()
+      let errMsg = ''
+      switch (err.code) {
+        case 1:
+          errMsg = '网络超时，请稍后重试。'
+          break
+        case 1539:
+          this.showModal = true
+          this.$apply()
+          return
+        default:
+          errMsg = err.msg
+          break
+      }
+      wx.showToast({
+        title: 'Error: ' + errMsg,
+        icon: 'none'
+      })
+    }
+
+    methods = {
+      tapCreateButton (e) {
+        wx.showLoading()
+        this.unlock(e, (res) => {
+          wx.hideLoading()
+          wx.navigateTo({
+            url: 'create'
+          })
+        })
+      },
+      tapBalanceButton (e) {
+        wx.showLoading()
+        this.unlock(e, (res) => {
+          wx.hideLoading()
+          wx.navigateTo({
+            url: 'balance'
+          })
+        })
+      },
+      loginModalDone (e) {
+        this.showModal = false
+      },
+      tapMyRecords (e) {
+        wx.showLoading()
+        this.unlock(e, (res) => {
+          wx.hideLoading()
+          wx.navigateTo({
+            url: 'my-records?records=1'
+          })
+        })
+      },
+      tapMyPackets (e) {
+        wx.showLoading()
+        this.unlock(e, (res) => {
+          wx.hideLoading()
+          wx.navigateTo({
+            url: 'my-records?packets=1'
+          })
+        })
+      }
+    }
+    unlock (e, callback) {
+      this.$parent.globalData.userInfo = e.detail.userInfo
+      if (this.$parent.globalData.fxUserInfo && this.$parent.globalData.fxUserInfo.tel) {
+        this.$parent.globalData.client.wxLogin({
+          nickName: e.detail.userInfo.nickName,
+          avatar: e.detail.userInfo.avatarUrl
+        })
+          .then((res) => {
+            callback(res)
+          })
+          .catch((err) => {
+            this.errHandler(err)
+          })
+      } else {
+        wx.hideLoading()
+        this.showModal = true
+      }
+    }
+
+    events = {
+    }
+
+    async onLoad() {
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: '#FF6B49'
+      })
+      try {
+        wx.setBackgroundColor({
+          backgroundColor: '#FF6B49',
+          backgroundColorTop: '#FF6B49',
+          backgroundColorBottom: '#F29976'
+        })
+      } catch (e) {}
+    }
+  }
+</script>
+<style lang="less">
+  page {
+    background: #F1F1F1;
+  }
+  .container {
+    background: #F1F1F1;
+  }
+  .content {
+    padding: 0px 0 100px 0;
+    width:100%;
+  }
+  .content {
+    .name {
+      text-align: center;
+      font-size: 14px;
+    }
+  }
+  .form {
+    padding: 20px 16px;
+  }
+  .row-action {
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px 20px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    .row-action-image {
+      flex-basis: 70px;
+      height: 70px;
+      width: 70px;
+    }
+    .row-action-content {
+      padding: 10px 0;
+      margin-left: 20px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .row-action-title {
+      font-size: 20px;
+      flex: 1;
+    }
+    .row-action-text {
+      flex: 0;
+      font-size: 14px;
+    }
+  }
+  .back {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 320px;
+    z-index: 99;
+    transition: height 0.3s ease;
+    .back-inner {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      .back-border {
+        position: absolute;
+        top: -4px;
+        border-top: 1px solid #DD6A37;
+        border-bottom: 1px solid #DD6A37;
+        height: 2px;
+        left: 0;
+        right: 0;
+      }
+      .back-img {
+        height: 100%;
+        width: 100%;
+      }
+    }
+  }
+  .back.open {
+  }
+  .code-row-inner {
+    display: flex;
+    flex-direction: row;
+    .fx-input {
+      flex: 6;
+    }
+    .fx-button {
+      flex: 4;
+      margin-left: 10px;
+    }
+  }
+</style>

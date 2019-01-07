@@ -1,0 +1,301 @@
+<template>
+  <view class="container">
+    <view class="content">
+      <view class="vcard">
+        <view class="avatar">
+          <image mode="aspectFill" class="avatar-image" src="{{avatarUrl}}"/>
+        </view>
+        <view class="fullname">
+          {{fullname}}
+        </view>
+      </view>
+      <view class="assets-meta">共计 {{assets.length}} 种资产</view>
+      <view class="assets">
+        <view class="asset-item" @tap="tapAssetItem({{index}})" wx:key="asset-item-{{index}}" wx:for="{{assets}}" wx:for-index="index" wx:for-item="asset">
+          <image class="asset-item-icon" src="{{asset.icon}}"></image>
+          <view class="asset-item-identify">
+            <view class="asset-item-symbol">{{asset.symbol}}</view>
+            <view class="asset-item-name">{{asset.name}}</view>
+          </view>
+          <view class="asset-item-amount">{{asset.balance}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="back" :class="{ 'open': isOpen }" style="height: 40px">
+      <view class="back-inner">
+        <view class="back-border"></view>
+        <view class="back-copyright"></view>
+        <image class="back-img" mode="aspectFill" src="../assets/cover-back-img@2x.jpg"></image>
+      </view>
+    </view>
+    <fx-bottom-sheet :show.sync="showButtomSheet" :items.sync="items">
+      <view slot="content">
+        <view class="fx-bottom-sheet-item" @tap="tapSendRedPacket">
+          发硬币给朋友
+        </view>
+        <view class="fx-bottom-sheet-item" @tap="tapDeposite">
+          充值
+        </view>
+        <view class="fx-bottom-sheet-item" @tap="tapWithdraw">
+          提现 (下载 App)
+        </view>
+      </view>
+    </fx-bottom-sheet>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import FxBottomSheet from '@/components/fx-bottom-sheet'
+
+  export default class BalancePage extends wepy.page {
+    config = {
+      navigationBarTitleText: '我的余额',
+      navigationBarTitleColor: '#FF6B49',
+      backgroundColor: '#FF6B49'
+    }
+    components = {
+      'fx-bottom-sheet': FxBottomSheet
+    }
+
+    mixins = []
+
+    data = {
+      assets: [],
+      showButtomSheet: false,
+      items: [{
+        label: 'A',
+        tap: (index, e) => {
+          wx.navigateTo({
+            url: 'create?assetId=' + this.assets[index].mixinAssetId
+          })
+        }
+      }]
+    }
+
+    computed = {
+      avatarUrl () {
+        let url = ''
+        if (this.$parent.globalData.fxUserInfo && this.$parent.globalData.fxUserInfo.avatar) {
+          url = this.$parent.globalData.fxUserInfo.avatar
+        }
+        if (this.$parent.globalData.userInfo && this.$parent.globalData.userInfo.avatarUrl) {
+          url = this.$parent.globalData.userInfo.avatarUrl
+        }
+        if (url) {
+          if (url.indexOf('http') !== 0) {
+            return this.$parent.globalData.HOST_BASE + url
+          } else {
+            return url
+          }
+        }
+        return '../assets/default-avatar@2x.png'
+      },
+      fullname () {
+        if (this.$parent.globalData.fxUserInfo && this.$parent.globalData.fxUserInfo.fullname) {
+          return this.$parent.globalData.fxUserInfo.fullname
+        }
+        if (this.$parent.globalData.userInfo && this.$parent.globalData.userInfo.nickName) {
+          return this.$parent.globalData.userInfo.nickName
+        }
+        return ''
+      }
+    }
+
+    methods = {
+      tapAssetItem (index, e) {
+        this.showButtomSheet = true
+        this.tappedAssetId = this.assets[index].mixinAssetId
+        this.tappedAsset = this.assets[index]
+        this.$apply()
+      },
+      tapSendRedPacket () {
+        this.showButtomSheet = false
+        wx.navigateTo({
+          url: 'create?assetId=' + this.tappedAsset.mixinAssetId
+        })
+      },
+      tapWithdraw () {
+        this.showButtomSheet = false
+        wx.navigateTo({
+          url: 'withdraw?assetId=' + this.tappedAsset.mixinAssetId
+        })
+      },
+      tapDeposite () {
+        this.showButtomSheet = false
+        wx.navigateTo({
+          url: 'deposite?assetId=' + this.tappedAsset.mixinAssetId
+        })
+      }
+    }
+
+    events = {
+    }
+
+    async onLoad() {
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: '#FF6B49'
+      })
+      try {
+        wx.setBackgroundColor({
+          backgroundColor: '#FF6B49',
+          backgroundColorTop: '#FF6B49',
+          backgroundColorBottom: '#F29976'
+        })
+      } catch (e) {}
+      wx.showLoading()
+      this.$parent.globalData.client.getCoinAssets().then((res0) => {
+        // load defaults
+        let defaultSet = {}
+        console.log(res0.data.coins)
+        this.assets = res0.data.coins.map((x, index) => {
+          defaultSet[x.coinId] = index
+          return {
+            coinId: x.coinId,
+            mixinAssetId: x.mixinAssetId,
+            icon: x.logo,
+            symbol: x.symbol,
+            name: x.name,
+            balance: 0
+          }
+        })
+        // load my
+        this.$parent.globalData.client.getAssets().then((res) => {
+          let assets = res.data.assets
+          for (let i = 0; i < assets.length; i += 1) {
+            if (defaultSet.hasOwnProperty(assets[i].coinId)) {
+              this.assets[defaultSet[assets[i].coinId]].balance = assets[i].balance
+            } else {
+              this.assets.push({
+                coinId: assets[i].coinId,
+                mixinAssetId: assets[i].assetId,
+                icon: assets[i].icon,
+                symbol: assets[i].symbol,
+                name: assets[i].name,
+                balance: assets[i].balance
+              })
+            }
+          }
+          this.$apply()
+          wx.hideLoading()
+        }).catch((err) => {
+          wx.hideLoading()
+          wx.showToast({icon: 'none', title: '网络错误，请稍后重试: ' + err.code})
+        })
+      }).catch((err) => {
+        wx.hideLoading()
+        wx.showToast({icon: 'none', title: '网络错误，请稍后重试: ' + err.code})
+      })
+    }
+  }
+</script>
+<style lang="less" scoped>
+  page {
+    background: #FFF;
+  }
+  .container {
+    background: #FFF;
+  }
+  .content {
+    padding: 20px 0 100px 0;
+    width:100%;
+  }
+  .form {
+    padding: 20px 16px;
+  }
+
+  .back {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 320px;
+    z-index: 99;
+    transition: height 0.3s ease;
+    .back-inner {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      .back-border {
+        position: absolute;
+        top: -4px;
+        border-top: 1px solid #DD6A37;
+        border-bottom: 1px solid #DD6A37;
+        height: 2px;
+        left: 0;
+        right: 0;
+      }
+      .back-img {
+        height: 100%;
+        width: 100%;
+      }
+    }
+  }
+  .vcard {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+    .avatar {
+      height: 48px;
+      width: 48px;
+      border-radius: 50%;
+      .avatar-image {
+        height: 48px;
+        width: 48px;
+        border-radius: 50%;
+      }
+    }
+    .fullname {
+      font-weight: bold;
+      margin-left: 10px;
+    }
+  }
+  .assets {
+    padding: 0 16px;
+  }
+  .assets-meta {
+    color: #aaa;
+    font-size: 12px;
+    padding: 0 0 0 16px;
+    margin-bottom: 2px;
+  }
+  .asset-item:first-child {
+    border-top: 1px solid #aaa;
+  }
+  .asset-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 0 ;
+    border-top: 1px dashed #aaa;
+    .asset-item-icon {
+      width: 32px;
+      height: 32px;
+      flex-basis: 32px;
+    }
+    .asset-item-identify {
+      display: flex;
+      flex-direction: column;
+    }
+    .asset-item-name {
+      flex: 0;
+      margin-left: 10px;
+      font-size: 14px;
+      color: #888;
+    }
+    .asset-item-symbol {
+      flex: 0;
+      margin-left: 10px;
+      font-size: 16px;
+    }
+    .asset-item-amount {
+      flex: 1;
+      margin-left: 10px;
+      font-size: 16px;
+      text-align: right;
+    }
+  }
+</style>

@@ -1,0 +1,58 @@
+<template>
+  <view class="container">
+    <web-view src="https://f1.lyricwei.cn/zh/download/"></web-view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+
+  export default class WidthdrawPage extends wepy.page {
+    config = {
+      navigationBarTitleText: '安装 Fox.ONE App',
+      navigationBarTitleColor: '#FF6B49'
+    }
+    components = {
+    }
+
+    mixins = []
+
+    data = {
+      asset: null
+    }
+
+    computed = {
+    }
+
+    methods = {
+    }
+
+    events = {
+    }
+
+    async onLoad(opts) {
+      wx.hideShareMenu()
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: '#FF6B49'
+      })
+    }
+  }
+</script>
+<style lang="less" scoped>
+  .container {
+  }
+  .content {
+    margin: 20px;
+    border-radius: 8px;
+    background: #FFF;
+    display: flex;
+    width: 90%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text {
+      word-break: break-all;
+    }
+  }
+</style>

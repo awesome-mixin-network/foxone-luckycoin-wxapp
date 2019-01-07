@@ -1,0 +1,587 @@
+<template>
+  <view class="container">
+    <view class="content" :class="{ 'open': isOpen }">
+      <view class="owner-info">{{redPacket.owner.fullname}} 的 {{unit}} 硬币</view>
+      <view class="bubble">{{redPacket.message}}</view>
+      <view wx:if="{{isExpired && record === null}}" class="slow-hint">
+        硬币过期了，下手得早点儿
+      </view>
+      <view wx:elif="{{!isAvailable && record === null}}" class="slow-hint">
+        硬币被抢光了，下手得再快点
+      </view>
+      <view wx:else>
+        <view class="balance-block" wx:if="{{record}}">
+          <balance-view :amount.sync="amountValue" :unit.sync="unit" :priceUsd.sync="priceUsd" text=""></balance-view>
+        </view>
+      </view>
+      <view wx:if="{{!isNewUser}}" class="button-wrapper">
+        <fx-balance-button label="查看余额" @tap.user="tapBalanceButton"></fx-balance-button>
+      </view>
+      <view wx:if="{{isNewUser}}">
+        <button wx:if="{{isNewUser}}" class="login-to-view-button" open-type="getUserInfo" bindgetuserinfo="bindGetUserInfoToView">
+          登录查看领取记录
+        </button>
+      </view>
+      <view wx:else>
+        <view wx:if="{{redPacket}}" class="result-list-meta">
+          <view wx:if="{{redPacket.number !== 0}}">
+            共 {{redPacket.total}} 个，已领取 {{redPacket.total - redPacket.number}} 个
+          </view>
+          <view wx:else>
+            硬币已抢光，用时{{during}}
+          </view>
+        </view>
+        <view class="result-list">
+          <view class="result-item" wx:key="result-item-{{index}}" wx:for="{{pickResult}}" wx:for-index="index" wx:for-item="result">
+            <image class="result-item-avatar" src="{{result.avatarUrl}}"></image>
+            <view class="result-item-left">
+              <view class="result-item-name">{{result.nickName}}</view>
+              <view class="result-item-time">{{result.time}}</view>
+            </view>
+            <view class="result-item-right">
+              <view class="result-item-amount">{{result.amount}} {{unit}}</view>
+              <view wx:if="{{result.bestLuck}}" class="result-item-best-luck">👑 手气最佳</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="back" :class="{ 'open': isOpen }" style="height: {{backHeight}}px">
+      <view class="back-inner">
+        <view class="back-border"></view>
+        <view class="back-copyright"></view>
+        <image class="back-img" mode="aspectFill" src="../assets/cover-back-img@2x.jpg"></image>
+      </view>
+    </view>
+    <view class="cover" :class="{ 'open': isOpen }" style="height: {{coverHeight}}px">
+      <view class="cover-inner">
+        <image class="cover-img" mode="bottom center" src="../assets/cover-front-img@2x.png"></image>
+        <view wx:if="{{!isOpen}}" class="cover-summary">
+          <view class="cover-summary-text">来自{{senderName}}的{{unit}}硬币</view>
+        </view>
+        <view class="open-view">
+          <view wx:if="{{isOpen}}" class="open-avatar">
+            <image mode="aspectFit" class="open-avatar-img" src="{{avatarUrl}}"></image>
+          </view>
+          <button wx:else class="open-button" open-type="getUserInfo" bindgetuserinfo="bindGetUserInfo">
+            <image mode="aspectFit" src="../assets/open-button-label-img@2x.png" ></image>
+          </button>
+        </view>
+      </view>
+    </view>
+    <login-modal :show.sync="showLoginModal" @done.user="loginModalDone"></login-modal>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import BalanceView from '@/components/balance-view'
+  import LoginModal from '@/components/login-modal'
+  import FxButton from '@/components/fx-button'
+  import moment from 'moment'
+
+  export default class Index extends wepy.page {
+    config = {
+      navigationBarTitleText: '幸运硬币',
+      navigationBarTitleColor: '#FF6B49',
+      backgroundColor: '#FF6B49'
+    }
+    components = {
+      'login-modal': LoginModal,
+      'fx-balance-button': FxButton,
+      'fx-guide-button': FxButton,
+      'balance-view': BalanceView
+    }
+
+    mixins = []
+
+    data = {
+      showGuideModal: false,
+      showLoginModal: false,
+      amountValue: '',
+      unit: '',
+      senderName: '',
+      priceUsd: '',
+      pickResult: [],
+      loginDoneFnName: 'getRecord',
+      coverHeight: 1000,
+      backHeight: 320,
+      packetId: 0,
+      uuid: 0,
+      isExpired: false,
+      isAvailable: false,
+      redPacket: null,
+      record: null,
+      asset: null,
+      isOpen: false
+    }
+
+    computed = {
+      avatarUrl () {
+        if (this.redPacket && this.redPacket.owner) {
+          return this.redPacket.owner.avatar.indexOf('http') === 0 ? this.redPacket.owner.avatar : this.$parent.globalData.HOST_BASE + this.redPacket.owner.avatar
+        }
+        return '../assets/default-avatar@2x.png'
+      },
+      during () {
+        if (this.redPacket) {
+          return moment.duration((this.redPacket.archivedAt - this.redPacket.createdAt) * 1000).humanize()
+        }
+        return ''
+      },
+      isNewUser () {
+        if (this.$parent.globalData.fxUserInfo === null) {
+          return true
+        }
+        return false
+      }
+    }
+
+    methods = {
+      bindGetUserInfo (e) {
+        wx.showLoading()
+        this.$parent.globalData.userInfo = e.detail.userInfo
+        this.$parent.globalData.client.wxLogin({
+          nickName: e.detail.userInfo.nickName,
+          avatar: e.detail.userInfo.avatarUrl
+        })
+          .then((res) => {
+            this.drawPacket().then((res) => {
+              wx.hideLoading()
+            }).catch((err) => {
+              console.log(err)
+              wx.showToast({icon: 'none', title: 'Err:' + err.code})
+            })
+          })
+          .catch((err) => {
+            wx.hideLoading()
+            if (err.code === 1539) {
+              this.loginDoneFnName = 'drawPacket'
+              this.showLoginModal = true
+              this.$apply()
+            }
+            if (err.code === 1) {
+              wx.showToast({icon: 'none', title: '网络不稳定，请稍后重试'})
+            }
+          })
+      },
+      bindGetUserInfoToView (e) {
+        wx.showLoading()
+        this.$parent.globalData.userInfo = e.detail.userInfo
+        this.$parent.globalData.client.wxLogin()
+          .then((res) => {
+            this.getRecord().then((res) => {
+              wx.hideLoading()
+            }).catch((err) => {
+              wx.showToast({icon: 'none', title: 'Err:' + err.code})
+            })
+          })
+          .catch((err) => {
+            wx.hideLoading()
+            if (err.code === 1539) {
+              this.loginDoneFnName = 'getRecord'
+              this.showLoginModal = true
+              this.$apply()
+            }
+            if (err.code === 1) {
+              wx.showToast({icon: 'none', title: '网络不稳定，请稍后重试'})
+            }
+          })
+      },
+      tapBalanceButton (e) {
+        wx.navigateTo({
+          url: 'index'
+        })
+      },
+      loginModalDone (e) {
+        this.showLoginModal = false
+        wx.showLoading()
+        if (this.loginDoneFnName === 'getRecord') {
+          this.getRecord().then((res) => {
+            wx.hideLoading()
+          }).catch((err) => {
+            wx.hideLoading()
+            wx.showToast({icon: 'none', title: 'Err:' + err.code})
+          })
+        } else {
+          this.drawPacket().then((res) => {
+            wx.hideLoading()
+            this.unpack()
+          }).catch((err) => {
+            wx.hideLoading()
+            wx.showToast({icon: 'none', title: 'Err:' + err.code})
+          })
+        }
+      }
+    }
+
+    drawPacket () {
+      return new Promise((resolve, reject) => {
+        this.$parent.globalData.client.drawPacket({
+          packetId: this.packetId,
+          uuid: this.uuid
+        }).then((res) => {
+          console.log('draw packet', res)
+          this.record = res.data.record
+          this.amountValue = res.data.record.amount
+          this.getDetail(this.packetId, this.uuid)
+          this.$apply()
+          this.unpack()
+          resolve(res)
+        }).catch((err) => {
+          console.log('draw packet err', err)
+          reject(err)
+        })
+      })
+    }
+
+    getDetail (packetId, uuid) {
+      return new Promise((resolve, reject) => {
+        this.$parent.globalData.client.getPacketDetail({
+          packetId: packetId,
+          uuid: uuid
+        }).then((res) => {
+          console.log('packet detail', res)
+          this.isExpired = res.data.expired
+          this.isAvailable = res.data.redPacket.number || 0
+          this.redPacket = res.data.redPacket
+          this.redPacket.number = this.isAvailable || 0
+          this.record = res.data.record
+          this.unit = res.data.redPacket.assetSymbol
+          this.senderName = res.data.redPacket.owner.fullname
+          this.$apply()
+          resolve(res)
+        }).catch((err) => {
+          console.log('packet detail err', err)
+          reject(err)
+        })
+      })
+    }
+
+    getRecord () {
+      return new Promise((resolve, reject) => {
+        this.$parent.globalData.client.getPacketRecord({
+          packetId: this.packetId,
+          uuid: this.uuid
+        }).then((res) => {
+          this.pickResult = res.data.records.map((item) => {
+            return {
+              avatarUrl: item.receiver && item.receiver.avatar ? (item.receiver.avatar.indexOf('http') === 0 ? item.receiver.avatar : this.$parent.globalData.HOST_BASE + item.receiver.avatar) : '../assets/default-avatar@2x.png',
+              nickName: item.receiver ? item.receiver.fullname : '不明人士',
+              amount: item.amount,
+              time: moment(item.createdAt * 1000).fromNow(),
+              bestLuck: item.bestLuck
+            }
+          })
+          resolve(res)
+        }).catch((err) => {
+          console.log(err)
+          reject(err)
+        })
+      })
+    }
+
+    unpack () {
+      this.isOpen = true
+      this.coverHeight = 120
+      this.backHeight = 40
+      this.getRecord().then(() => {
+        this.$apply()
+      }).catch(() => {
+        this.$apply()
+      })
+    }
+
+    events = {
+    }
+
+    onLoad(opts) {
+      wx.showLoading()
+      wepy.getSystemInfo().then((res) => {
+        this.coverHeight = res.windowHeight - 280
+        this.$apply()
+      })
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: '#FF6B49'
+      })
+      try {
+        wx.setBackgroundColor({
+          backgroundColor: '#FF6B49',
+          backgroundColorTop: '#FF6B49',
+          backgroundColorBottom: '#F29976'
+        })
+      } catch (e) {}
+      console.log('opts', opts)
+
+      this.getDetail(opts.id, opts.uuid).then((res) => {
+        wx.hideLoading()
+        this.packetId = opts.id
+        this.uuid = opts.uuid
+        if (!this.isAvailable || this.isExpired) {
+          // 领完了或者过期了，直接打开。
+          this.unpack()
+        }
+        if (this.record) {
+          // already picked，直接打开。
+          this.amountValue = res.data.record.amount
+          this.unpack()
+        }
+        this.$apply()
+      }).catch((err) => {
+        wx.hideLoading()
+        console.log(err)
+      })
+    }
+  }
+</script>
+<style lang="less" scoped>
+  page {
+    background: #FF6B49;
+  }
+  .container {
+    background: #FFF;
+  }
+  .container.closed {
+    overflow: hidden;
+  }
+  .content {
+    padding: 170px 0 100px 0;
+    width:100%;
+    opacity: 0;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .content.open {
+    opacity: 1;
+  }
+  .owner-info {
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .bubble {
+    border-radius:8px;
+    margin: 2px auto 10px auto;
+    text-align: center;
+    font-size: 14px;
+    padding: 4px 8px;
+    background:#eee;
+    color: #888;
+    max-width:300px;
+    display: inline-block;
+    position: relative;
+    &::before {
+      content: " ";
+      display: block;
+      width: 0;
+      height: 0;
+      border-width: 6px;
+      border-color: transparent transparent #eee transparent;
+      border-style: solid;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      margin-left: -6px;
+      margin-top: -12px;
+    }
+  }
+  .cover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 1000px;
+    .cover-inner {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      .cover-summary {
+        position: absolute;
+        bottom: -100px;
+        left: 0;
+        right: 0;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        .cover-summary-text {
+          margin-top:10px;
+          text-align:center;
+          color:white;
+          background: rgba(255,255,255,0.2);
+          padding:4px 8px;
+          border-radius:4px;
+          font-size:16px;
+        }
+      }
+      .cover-img {
+        height: 100%;
+        width: 100%;
+      }
+      .open-view {
+        position: absolute;
+        z-index: 110;
+        bottom: 0;
+        left: 50%;
+        margin-left: -50px;
+        margin-bottom: -50px;
+        background: #FFD244;
+        border: 1px solid #A22C13;
+        box-shadow: 0 1px 2px 0 #A33720;
+        color: #E0644A;
+        border-radius: 99em;
+        height: 100px;
+        width: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .open-button, .open-avatar {
+        background: #FFEFBE;
+        border-radius: 99em;
+        height: 88px;
+        width: 88px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 50px;
+        box-shadow: 0 1px 2px 0 rgba(172,105,18,0.50);
+      }
+      .open-avatar-img {
+        border-radius: 99em;
+        height: 100%;
+      }
+    }
+  }
+  .cover.open {
+    transition: height 0.3s ease;
+    .open-view {
+      background: transparent;
+      box-shadow: none;
+      border: none;
+    }
+  }
+  .back {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 320px;
+    z-index: 99;
+    .back-inner {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      .back-border {
+        position: absolute;
+        top: -4px;
+        border-top: 1px solid #DD6A37;
+        border-bottom: 1px solid #DD6A37;
+        height: 2px;
+        left: 0;
+        right: 0;
+      }
+      .back-img {
+        height: 100%;
+        width: 100%;
+      }
+    }
+  }
+  .back.open {
+    transition: height 0.3s ease;
+  }
+  .login-to-view-button {
+    width: 200px;
+    margin: 10px auto;
+  }
+  .result-list-meta {
+    color: #aaa;
+    font-size: 12px;
+    padding: 0 0 0 16px;
+    margin-bottom: 2px;
+  }
+  .result-list {
+    padding: 0 16px;
+    .result-item:first-child {
+      border-top: 1px solid #aaa;
+    }
+    .result-item {
+      display: flex;
+      flex-direction: row;
+      border-top: 1px dashed #aaa;
+      padding: 10px 0;
+      align-items: center;
+      color: #000;
+      .result-item-avatar {
+        height: 32px;
+        width: 32px;
+        border-radius: 50%;
+      }
+      .result-item-name, .result-item-amount {
+        align-items: center;
+        display: flex;
+      }
+      .result-item-left {
+        margin-left: 10px;
+        flex: 1;
+        .result-item-name {
+          font-size: 16px;
+        }
+        .result-item-time {
+          font-size: 12px;
+          color: #aaa;
+        }
+      }
+      .result-item-right {
+        justify-content: flex-end;
+        .result-item-amount {
+          font-size: 16px;
+          text-align: right;
+          align-items: flex-end;
+          justify-content: flex-end;
+        }
+        .result-item-best-luck {
+          color: #F55C23;
+          font-size: 12px;
+          text-align: right;
+        }
+      }
+    }
+  }
+  .slow-hint {
+    text-align: center;
+    color: #F55C23;
+    margin: 10px auto 30px auto;
+  }
+  .balance-block {
+    margin-bottom: 0px;
+  }
+  .button-wrapper {
+    margin: 0 auto 20px auto;
+    width: 60%;
+  }
+  .guide-title {
+    font-size: 20px;
+    font-weight: bold;
+  }
+  .guide-text {
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+  .guide-image-wrapper {
+    margin: 0 auto 10px auto;
+    width: 259px;
+    height: 102px;
+    image {
+      width: 259px;
+      height: 102px;
+    }
+  }
+  .guide-button-wrapper {
+    padding: 10px 16px;
+    margin-bottom: 10px;
+  }
+</style>

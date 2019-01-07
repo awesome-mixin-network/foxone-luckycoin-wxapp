@@ -1,0 +1,131 @@
+<template>
+  <view class="wrapper">
+    <picker class="picker" bindchange="bindPickerChange" value="{{value}}" range="{{items}}" range-key="{{itemKey}}">
+      <view class="picker-inner">
+        <view wx:if="{{items.length !== 0}}" class="picked-content">
+          <image class="picked-icon" src="{{items[value].icon}}"></image>
+          <view class="picked-identiy" >
+            <view class="picked-symbol">{{items[value].symbol}}</view>
+            <view class="picked-name">{{items[value].name}}</view>
+          </view>
+          <view class="picked-amount">
+            {{items[value].balance}}
+          </view>
+          <view class="picked-arrow"></view>
+        </view>
+        <view wx:else class="picked-content hint">
+          一个硬币也没有。
+        </view>
+      </view>
+    </picker>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class FxPicker extends wepy.component {
+    props = {
+      items: {
+        type: Array,
+        default: [{display: 'abc'}]
+      },
+      itemKey: {
+        type: String,
+        default: ''
+      },
+      useCustomContent: {
+        type: Boolean,
+        default: true
+      },
+      value: {
+        type: Number,
+        default: 0,
+        twoWay: true
+      }
+    }
+    data = {
+    }
+    methods = {
+      bindPickerChange (e) {
+        this.value = e.detail.value
+        this.$emit('change', e)
+      }
+    }
+  }
+</script>
+
+<style type="less" lang="less" scoped>
+.wrapper {
+  background: #FFFFFF;
+  border: 1px solid #FFFFFF;
+  border-radius: 8px;
+  display: flex;
+  height: 64px;
+  align-items: center;
+  font-size: 16px;
+  box-shadow: 0 0 0 0.5px rgba(0,0,0,0.1);
+
+  .picker {
+    width: 100%;
+  }
+  .picked-content {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    padding: 0 10px;
+    align-items: center;
+    .picked-icon {
+      width: 32px;
+      height: 32px;
+      flex-basis: 32px;
+    }
+    .picked-identiy {
+      display: flex;
+      flex-direction: column;
+      margin-left: 10px;
+      .picked-name {
+        font-size: 12px;
+      }
+      .picked-symbol {
+        font-size: 16px;
+      }
+    }
+    .picked-amount {
+      font-size: 16px;
+      text-align: right;
+      flex: 1;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      font-family: "DIN Alternate", "DINCondensed", "DINPro", monospace;
+    }
+    .picked-arrow {
+      border-width: 6px;
+      border-color: #888 transparent transparent transparent;
+      border-style: solid;
+      display: block;
+      content: '';
+      width: 0;
+      height: 0;
+      margin:10px 0 0 10px;
+    }
+  }
+  .picked-content.hint {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #ccc;
+  }
+  .picker-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+  }
+  .prefix-label {
+    width: 60px;
+    padding: 0 10px;
+    flex-basis:60px;
+    flex-grow:0;
+  }
+}
+</style>

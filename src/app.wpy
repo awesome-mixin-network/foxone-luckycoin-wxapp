@@ -1,0 +1,135 @@
+<style lang="less">
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.form {
+  padding: 20px 16px;
+  .form-row {
+    padding: 0 0 10px 0;
+  }
+  .form-hint {
+    font-size: 14px;
+    padding: 0 0 4px 10px;
+  }
+  .form-hint.center {
+    text-align: center;
+  }
+}
+.fx-bottom-sheet-item {
+  margin: 0 10px;
+  display: flex;
+  height: 44px;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.fx-bottom-sheet-item:last-child {
+  border: none;
+}
+.fx-bottom-sheet-item.solo {
+  border: none;
+}
+</style>
+
+<script>
+import wepy from 'wepy'
+import 'wepy-async-function'
+
+import Client from './comm/client'
+
+import { setStore } from 'wepy-redux'
+import configStore from './store'
+import moment from 'moment'
+
+const store = configStore()
+setStore(store)
+
+export default class extends wepy.app {
+  config = {
+    pages: [
+      'pages/index',
+      'pages/create',
+      'pages/balance',
+      'pages/my-records',
+      'pages/deposite',
+      'pages/withdraw',
+      'pages/open-preview',
+      'pages/open'
+    ],
+    window: {
+      backgroundTextStyle: 'light',
+      navigationBarBackgroundColor: '#fff',
+      navigationBarTitleText: 'WeChat',
+      navigationBarTextStyle: 'black'
+    }
+  }
+
+  globalData = {
+    userInfo: null,
+    fxUserInfo: null,
+    HOST_BASE: 'https://www.fox.one',
+    client: new Client()
+  }
+
+  constructor () {
+    super()
+    this.use('requestfix')
+    this.use('promisify')
+  }
+
+  onLaunch() {
+    this.testAsync()
+    this.loadFromStorage()
+    this.initMomentJs()
+  }
+
+  sleep (s) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve('promise resolved')
+      }, s * 1000)
+    })
+  }
+
+  async testAsync () {
+    const data = await this.sleep(3)
+    console.log(data)
+  }
+
+  loadFromStorage () {
+    let fxUserInfo = wx.getStorageSync('fxUserInfo')
+    if (fxUserInfo) {
+      this.globalData.fxUserInfo = fxUserInfo
+    }
+  }
+
+  initMomentJs () {
+    moment.updateLocale('en', {
+      relativeTime: {
+        future: '%s',
+        past: '%s前',
+        s: function (number, withoutSuffix, key, isFuture) {
+          return number + '秒'
+        },
+        m: '1分钟',
+        mm: function (number, withoutSuffix, key, isFuture) {
+          return number + '分钟'
+        },
+        h: '1小时',
+        hh: '%d小时',
+        d: '1天',
+        dd: '%d天',
+        M: '1个月',
+        MM: '%d个月',
+        y: '一年',
+        yy: '%d年'
+      }
+    })
+  }
+}
+</script>

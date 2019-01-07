@@ -1,0 +1,27 @@
+{
+	"description": "FoxOne Lucky Coin",
+	"setting": {
+		"urlCheck": false,
+		"es6": true,
+		"postcss": false,
+		"minified": true
+	},
+	"compileType": "weapp",
+	"appid": "",
+	"projectname": "foxone-luckcoin",
+	"miniprogramRoot": "./dist",
+	"condition": {
+		"weapp": {
+			"current": -1,
+			"list": []
+		},
+		"search": {
+			"current": -1,
+			"list": []
+		},
+		"conversation": {
+			"current": -1,
+			"list": []
+		}
+	}
+}

@@ -1,0 +1,67 @@
+<template>
+  <view class="balance">
+    <view class="amount-token">{{amountValue}}{{unit}}</view>
+    <view class="amount-price">
+      <view wx:if="{{text}}">{{text}}</view>
+      <view wx:else>
+        <view wx:if="{{pricing}}">≈ {{cny}} 元</view>
+        <view wx:else></view>
+      </view>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class BalanceView extends wepy.component {
+    props = {
+      amount: {
+        type: String,
+        default: '0.00'
+      },
+      unit: {
+        type: String,
+        default: 'BTC'
+      },
+      text: {
+        type: String,
+        default: ''
+      },
+      priceUsd: {
+        type: Number,
+        default: 0.0
+      }
+    }
+    computed = {
+      pricing () {
+        return this.priceUsd && this.priceUsd > 0
+      },
+      cny () {
+        return this.priceUsd * 6.3
+      },
+      amountValue () {
+        return this.amount === '' ? '0.00' : this.amount
+      }
+    }
+    data = {
+    }
+    methods = {
+    }
+  }
+</script>
+
+<style type="less" scoped>
+.balance {
+  margin-bottom: 10px;
+  .amount-token {
+    color: #F55C23;
+    font-size: 40px;
+    text-align: center;
+  }
+  .amount-price {
+    color: #9D9D9D;
+    font-size: 18px;
+    text-align: center;
+  }
+}
+</style>

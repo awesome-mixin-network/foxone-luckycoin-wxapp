@@ -1,0 +1,57 @@
+<template>
+  <view class="fx-textarea">
+    <view class="textarea-wrapper">
+      <textarea value="{{value}}" placeholder="{{placeholder}}" bindTextAreaBlur="bindTextAreaBlur"/>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class FxInput extends wepy.component {
+    props = {
+      placeholder: {
+        type: String,
+        default: 'placeholder'
+      },
+      value: {
+        type: String,
+        default: '',
+        twoWay: true
+      }
+    }
+    data = {
+    }
+    methods = {
+      bindTextAreaBlur (e) {
+        console.log(this.value)
+        this.value = e.detail.value
+      }
+    }
+  }
+</script>
+
+<style type="less" lang="less" scoped>
+.fx-textarea {
+  background: #FFFFFF;
+  border: 1px solid #FFFFFF;
+  border-radius: 8px;
+  display: flex;
+  height: 88px;
+  align-items: center;
+  font-size: 16px;
+  box-shadow: 0 0 0 0.5px rgba(0,0,0,0.1);
+  padding: 0 10px;
+  .textarea-wrapper {
+    height: 100%;
+    width: 100%;
+    flex: 1;
+    text-align: left;
+    textarea {
+      height: 100%;
+      width: 100%;
+      padding:4px 0;
+    }
+  }
+}
+</style>

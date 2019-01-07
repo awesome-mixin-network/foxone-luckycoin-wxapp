@@ -1,0 +1,99 @@
+<template>
+  <view class="dialog-mask" :class="{ 'show': show }">
+    <view class="dialog">
+      <view class="dialog-close-btn" @tap="close">
+        <image mode="aspectFit" src="../assets/close-button-icon@2x.png"/>
+      </view>
+      <view class="dialog-title-bar">
+        <slot name="title"></slot>
+      </view>
+      <view class="dialog-content">
+        <slot name="content"></slot>
+      </view>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class FxModal extends wepy.component {
+    props = {
+      show: {
+        type: Boolean,
+        default: false,
+        twoWay: true
+      }
+    }
+    data = {
+    }
+    methods = {
+      close () {
+        console.log('close')
+        this.show = false
+        this.$apply()
+      }
+    }
+  }
+</script>
+
+<style type="less" lang="less">
+.dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.1);
+  display: none;
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 199;
+}
+.dialog-mask.show {
+  display: flex;
+}
+.dialog {
+  margin-top: 100px;
+  width: 80%;
+  height: auto;
+  background: rgb(243, 243, 243);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  border-radius: 8px;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 200;
+  .dialog-close-btn {
+    border: none;
+    background: none;
+    font-size: 14px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 44px;
+    width: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    image {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+  }
+  .dialog-title-bar {
+    margin: 0 10px;
+    flex-basis: 44px;
+    height: 40px;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+  .dialog-content {
+    
+  }
+}
+</style>

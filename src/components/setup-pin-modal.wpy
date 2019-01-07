@@ -1,0 +1,82 @@
+<template>
+  <fx-pin-modal :show.sync="show">
+    <view slot="title">设置 PIN</view>
+    <view slot="content">
+      <view class="form">
+        <view class="form-row">
+          <view class="form-hint center">请务必牢记，一旦丢失，不可找回。</view>
+        </view>
+        <view class="form-row">
+          <fx-pin-input inputType="number" prefix="" suffix="" placeholder="输入 6 位 PIN" :value.sync="pinValue"></fx-pin-input>
+        </view>
+        <view class="form-row">
+          <fx-repeat-pin-input inputType="number" prefix="" suffix="" placeholder="重复一遍 PIN" :value.sync="repeatPinValue"></fx-repeat-pin-input>
+        </view>
+        <view class="form-row">
+          <fx-pin-button label="保存 PIN" @tap.user="tapPinButton" buttonType="primary" :fxDisabled.sync="disabled"></fx-pin-button>
+        </view>
+      </view>
+    </view>
+  </fx-pin-modal>
+</template>
+<script>
+  import wepy from 'wepy'
+  import FxModal from '@/components/fx-modal'
+  import FxInput from '@/components/fx-input'
+  import FxButton from '@/components/fx-button'
+
+  export default class SetupPinModal extends wepy.component {
+    components = {
+      'fx-pin-input': FxInput,
+      'fx-repeat-pin-input': FxInput,
+      'fx-pin-modal': FxModal,
+      'fx-pin-button': FxButton
+    }
+    props = {
+      show: {
+        type: Boolean,
+        default: false,
+        twoWay: true
+      }
+    }
+    data = {
+      pinValue: '',
+      repeatPinValue: ''
+    }
+    computed = {
+      disabled () {
+        if (this.repeatPinValue.trim() === '' || this.pinValue.trim() === '') {
+          return true
+        }
+        if (this.repeatPinValue.trim() !== this.pinValue.trim()) {
+          return true
+        }
+        if (!/^\d{6}$/.test(this.pinValue)) {
+          return true
+        }
+        return false
+      }
+    }
+    methods = {
+      tapPinButton (e) {
+        wx.showLoading()
+        let client = this.$parent.$parent.globalData.client
+        client.modifyPin({
+          pin: this.pinValue,
+          newPin: this.pinValue,
+          pinType: 1
+        }).then((res) => {
+          this.$parent.$parent.globalData.fxUserInfo.isPinSet = true
+          wx.hideLoading()
+          this.$emit('done', this.pinValue, this.repeatPinValue)
+        }).catch((err) => {
+          wx.hideLoading()
+          wx.showToast({icon: 'none', title: 'Err:' + err.code})
+        })
+      }
+    }
+  }
+</script>
+
+<style type="less" scoped>
+</style>

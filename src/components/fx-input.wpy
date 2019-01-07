@@ -1,0 +1,79 @@
+<template>
+  <view class="fx-input">
+    <view wx:if="{{prefix}}" class="prefix-label">
+      <text>{{prefix}}</text>
+    </view>
+    <view class="input-wrapper">
+      <input wx:if="{{usePassword}}" password="{{usePassword}}" type="{{inputType}}" value="{{value}}" placeholder="{{placeholder}}" bindinput="bindKeyInput"/>
+      <input wx:else type="{{inputType}}" value="{{value}}" placeholder="{{placeholder}}" bindinput="bindKeyInput"/>
+    </view>
+    <view wx:if="{{suffix}}" class="suffix-label">
+      <text>{{suffix}}</text>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class FxInput extends wepy.component {
+    props = {
+      prefix: {
+        type: String,
+        default: ''
+      },
+      suffix: {
+        type: String,
+        default: ''
+      },
+      usePassword: {
+        type: Boolean,
+        default: false
+      },
+      inputType: {
+        type: String,
+        default: 'text'
+      },
+      placeholder: {
+        type: String,
+        default: 'placeholder'
+      },
+      value: {
+        type: String,
+        default: '',
+        twoWay: true
+      }
+    }
+    data = {
+    }
+    methods = {
+      bindKeyInput (e) {
+        this.value = e.detail.value
+      }
+    }
+  }
+</script>
+
+<style type="less" lang="less">
+.fx-input {
+  background: #FFFFFF;
+  border: 1px solid #FFFFFF;
+  border-radius: 8px;
+  display: flex;
+  height: 44px;
+  align-items: center;
+  font-size: 16px;
+  box-shadow: 0 0 0 0.5px rgba(0,0,0,0.1);
+  padding: 0 10px;
+  .input-wrapper {
+    flex: 1;
+    text-align: left;
+  }
+  .prefix-label {
+    width: 60px;
+  }
+  .prefix-label, .suffix-label {
+    padding: 0;
+  }
+
+}
+</style>

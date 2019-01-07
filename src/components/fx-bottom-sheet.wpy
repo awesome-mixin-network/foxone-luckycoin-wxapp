@@ -1,0 +1,106 @@
+<template>
+  <view class="bottom-sheet-mask" :class="{ 'show': show }" @tap="close">
+    <view class="bottom-sheet">
+      <view class="bottom-sheet-title-bar" catchtap="stop">
+        {{title}}
+      </view>
+      <view class="bottom-sheet-content" catchtap="stop">
+        <slot name="content"></slot>
+      </view>
+      <view class="bottom-sheet-cancel-btn" @tap="close">
+        <view class=" fx-bottom-sheet-item solo" >
+          取消
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class FxBottomSheet extends wepy.component {
+    props = {
+      show: {
+        type: Boolean,
+        default: true,
+        twoWay: true
+      },
+      title: {
+        type: String,
+        default: ''
+      },
+      items: {
+        type: Array,
+        default: [{
+          label: 'OK',
+          tap: (e) => { alert(e) }
+        }]
+      }
+    }
+    data = {
+    }
+    methods = {
+      close () {
+        console.log('close')
+        this.show = false
+        this.$apply()
+      },
+      stop (e) {
+      }
+    }
+  }
+</script>
+
+<style type="less" lang="less" scoped>
+.bottom-sheet-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.2);
+  display: none;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 199;
+}
+.bottom-sheet-mask.show {
+  display: flex;
+}
+.bottom-sheet {
+  width: 90%;
+  height: auto;
+  bottom: 20px;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 200;
+  text-align: center;
+  .bottom-sheet-cancel-btn {
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border-radius: 8px;
+    height: 44px;
+  }
+  .bottom-sheet-title-bar {
+    margin: 0 10px;
+    flex-basis: 44px;
+    height: 40px;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+  }
+  .bottom-sheet-content {
+    border-radius: 8px;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    margin-bottom: 10px;
+    .bottom-sheet-item {
+      text-align: center;
+      height: 44px;
+    }
+  }
+}
+</style>

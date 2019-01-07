@@ -1,0 +1,124 @@
+<template>
+  <view class="container">
+    <view class="content">
+      <view class="top">
+        <view class="title">扫描二维码充值</view>
+      </view>
+      <view class="qrcode">
+        <canvas style="width: 200px; height: 200px;" canvas-id="myQrcode"></canvas>
+      </view>
+      <view class="form">
+        <view class="form-row">
+          <text class="addr-text">{{asset.publicKey}}</text>
+        </view>
+        <view class="form-row">
+          <fx-button buttonType="primary" label="复制充值地址" @tap.user="tap2Copy"></fx-button>
+        </view>
+        <view class="form-row">
+          <view class="hint">请留意充值资产类型，不同主链的地址不能互相充值，会导致资金无可挽回地遗失。</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import FxButton from '@/components/fx-button'
+  import drawQrcode from 'weapp-qrcode'
+
+  export default class DepositePage extends wepy.page {
+    config = {
+      navigationBarTitleText: '充值',
+      navigationBarTitleColor: '#FF6B49'
+    }
+    components = {
+      'fx-button': FxButton
+    }
+
+    mixins = []
+
+    data = {
+      asset: null
+    }
+
+    computed = {
+    }
+
+    methods = {
+      tap2Copy (e) {
+        wepy.setClipboardData({data: this.asset.publicKey}).then((d) => {
+          wx.showToast({icon: 'none', 'title': '已复制到剪贴板'})
+        })
+      }
+    }
+
+    events = {
+    }
+
+    async onLoad(opts) {
+      wx.hideShareMenu()
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: '#FF6B49'
+      })
+      this.assetId = opts.assetId
+      this.$parent.globalData.client.getAsset({
+        assetId: this.assetId
+      }).then((res) => {
+        this.asset = res.data.asset
+        drawQrcode({
+          width: 200,
+          height: 200,
+          canvasId: 'myQrcode',
+          text: this.asset.publicKey
+        })
+        this.$apply()
+      }).catch((err) => {
+        console.log(err)
+        wx.showToast({icon: 'none', title: '网络错误，请稍后重试: ' + err.code})
+      })
+      this.$apply()
+    }
+  }
+</script>
+<style lang="less" scoped>
+  .container {
+  }
+  .content {
+    margin: 20px;
+    border-radius: 8px;
+    background: #FFF;
+    display: flex;
+    width: 90%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+  .top {
+    text-align: center;
+    padding: 20px 10px 10px 10px;
+    .title {
+      margin-bottom: 10px;
+    }
+  }
+  .addr-text {
+    width: 100%;
+    word-break: break-all;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .qrcode {
+    margin: 10px auto 10px auto; 
+  }
+  .form {
+    width: auto;
+    padding: 10px 20px;
+    margin-top: 10px;
+  }
+  .hint {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(245,92,35,0.82);
+  }
+</style>

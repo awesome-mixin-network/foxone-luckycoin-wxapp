@@ -1,0 +1,127 @@
+<template>
+  <view class="container">
+    <view class="preview-icon">
+      <image class="preview-icon-img" mode="aspectFit" src="../assets/preview-icon@2x.png"></image>
+    </view>
+    <view class="form">
+      <view class="form-row">
+        <fx-button buttonType="primary" openType="share" label="发给朋友"></fx-button>
+      </view>
+      <view class="form-row">
+        <view class="hint">让朋友们拼手气的时间到了。</view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import FxButton from '@/components/fx-button'
+
+  export default class Index extends wepy.page {
+    config = {
+      navigationBarTitleText: '幸运硬币',
+      navigationBarTitleColor: '#FF6B49',
+      backgroundColor: '#FFF'
+    }
+    components = {
+      'fx-button': FxButton
+    }
+
+    mixins = []
+
+    data = {
+      userInfo: {
+        nickName: '加载中...'
+      },
+      packetId: 0,
+      uuid: '',
+      name: '',
+      symbol: '',
+      amount: '',
+      count: 0,
+      message: '',
+      assetId: '',
+      coverHeight: 1000,
+      backHeight: 320
+    }
+
+    computed = {
+      fullname () {
+        if (this.$parent.globalData.fxUserInfo && this.$parent.globalData.fxUserInfo.fullname) {
+          return this.$parent.globalData.fxUserInfo.fullname
+        }
+        if (this.$parent.globalData.userInfo && this.$parent.globalData.userInfo.nickName) {
+          return this.$parent.globalData.userInfo.nickName
+        }
+        return ''
+      }
+    }
+
+    methods = {
+      bindGetUserInfo (e) {
+        this.userInfo = e.detail.userInfo
+        this.$apply()
+      },
+      onShareAppMessage (res) {
+        if (res.from === 'button') {
+          // 来自页面内转发按钮
+          console.log(res.target)
+        }
+        return {
+          title: `${this.fullname} 送给你一些 ${this.symbol}。`,
+          path: `pages/open?id=${this.packetId}&uuid=${this.uuid}`
+        }
+      }
+    }
+
+    events = {
+    }
+
+    async onLoad(opts) {
+      wx.getSystemInfo({
+        success: (res) => {
+          this.coverHeight = res.windowHeight - 280
+          this.$apply()
+        }
+      })
+      wx.hideShareMenu()
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: '#FF6B49'
+      })
+      this.packetId = opts.packetId
+      this.uuid = opts.uuid
+      this.symbol = opts.symbol
+      this.amount = opts.amount
+      this.count = opts.count
+      this.message = opts.message
+      this.assetId = opts.assetId
+      this.$apply()
+    }
+  }
+</script>
+<style lang="less">
+  page {
+    background: #FFF;
+  }
+  .container {
+    background: #FFF;
+  }
+  .preview-icon {
+    margin: 10px auto;
+    .preview-icon-img {
+      height: 250px;
+      width: 270px;
+    }    
+  }
+  .form {
+    width: 80%;
+    margin-top: 100px;
+  }
+  .hint {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(245,92,35,0.82);
+  }
+</style>
